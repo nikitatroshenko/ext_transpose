@@ -48,15 +48,53 @@ void transpose_thick(FILE *in, FILE *out)
 	fseek(out, 0, SEEK_SET);
 	fwrite(swapped, sizeof *swapped, 2, out);
 	for (size_t i = 0; i * B < dims[0]; i++) {
-		for (size_t j = 0; j * B < dims[1]; j++) {
-			for (size_t i1 = 0; i1 < B; i1++) {
-				fseek(in, DATA_START_OFFSET + (i * B + i1) * dims[1] + j * B, SEEK_SET);
-				fread(block + i1 * B, sizeof *block, B, in);
+		if ((i + 1) * B <= dims[0]) {
+			for (size_t j = 0; j * B < dims[1]; j++) {
+				if ((j + 1) * B <= dims[1]) {
+					for (size_t i1 = 0; i1 < B; i1++) {
+						fseek(in, DATA_START_OFFSET + (i * B + i1) * dims[1] + j * B, SEEK_SET);
+						fread(block + i1 * B, sizeof *block, B, in);
+					}
+					transpose_block(block, B);
+					for (size_t i1 = 0; i1 < B; i1++) {
+						fseek(out, DATA_START_OFFSET + (j * B + i1) * dims[0] + i * B, SEEK_SET);
+						fwrite(block + i1 * B, sizeof *block, B, out);
+					}
+				} else {
+					for (size_t i1 = 0; i1 < B; i1++) {
+						fseek(in, DATA_START_OFFSET + (i * B + i1) * dims[1] + j * B, SEEK_SET);
+						fread(block + i1 * B, sizeof *block, dims[1] % B, in);
+					}
+					transpose_block(block, B);
+					for (size_t i1 = 0; i1 < dims[1] % B; i1++) {
+						fseek(out, DATA_START_OFFSET + (j * B + i1) * dims[0] + i * B, SEEK_SET);
+						fwrite(block + i1 * B, sizeof *block, B, out);
+					}
+				}
 			}
-			transpose_block(block, B);
-			for (size_t i1 = 0; i1 < B; i1++) {
-				fseek(out, DATA_START_OFFSET + (j * B + i1) * dims[0] + i * B, SEEK_SET);
-				fwrite(block + i1 * B, sizeof *block, B, out);
+		} else {
+			for (size_t j = 0; j * B < dims[1]; j++) {
+				if ((j + 1) * B <= dims[1]) {
+					for (size_t i1 = 0; i1 < dims[0] % B; i1++) {
+						fseek(in, DATA_START_OFFSET + (i * B + i1) * dims[1] + j * B, SEEK_SET);
+						fread(block + i1 * B, sizeof *block, B, in);
+					}
+					transpose_block(block, B);
+					for (size_t i1 = 0; i1 < B; i1++) {
+						fseek(out, DATA_START_OFFSET + (j * B + i1) * dims[0] + i * B, SEEK_SET);
+						fwrite(block + i1 * B, sizeof *block, dims[0] % B, out);
+					}
+				} else {
+					for (size_t i1 = 0; i1 < dims[0] % B; i1++) {
+						fseek(in, DATA_START_OFFSET + (i * B + i1) * dims[1] + j * B, SEEK_SET);
+						fread(block + i1 * B, sizeof *block, dims[1] % B, in);
+					}
+					transpose_block(block, B);
+					for (size_t i1 = 0; i1 < dims[1] % B; i1++) {
+						fseek(out, DATA_START_OFFSET + (j * B + i1) * dims[0] + i * B, SEEK_SET);
+						fwrite(block + i1 * B, sizeof *block, dims[0] % B, out);
+					}
+				}
 			}
 		}
 	}

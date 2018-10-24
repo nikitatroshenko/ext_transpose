@@ -152,6 +152,7 @@ int main()
 	FILE *out = fopen(DEFAULT_OUTPUT, "wb");
 
 	transpose(in, out);
-	fcloseall();
+	fclose(in);
+	fclose(out);
 	return 0;
 }

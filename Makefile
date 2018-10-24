@@ -29,7 +29,7 @@ test_generator.out:
 	g++ -o test_generator.out test_generator.cpp
 
 ext_transpose.out:
-	g++ -o ext_transpose.out -DDEFAULT_BLOCK_SIZE=$(TRANSPOSE_BLOCK_SIZE) main.cpp
+	g++ --std=c++11 -o ext_transpose.out -DDEFAULT_BLOCK_SIZE=$(TRANSPOSE_BLOCK_SIZE) main.cpp
 
 clean:
 	rm -f *.out

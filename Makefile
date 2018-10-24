@@ -5,7 +5,20 @@ NC='\033[0m'
 AR_OUTPUT='output.bin'
 ER_OUTPUT='output.expected.bin'
 
-all: executeables
+all: executeables test
+
+test: executeables
+	echo "Running tests..."
+	./test-case.bash 512 512
+	./test-case.bash 1024 1024
+	./test-case.bash 2048 1024
+	./test-case.bash 1024 2048
+	./test-case.bash 1000 800
+	./test-case.bash 3000 3000
+	./test-case.bash 300 200
+	./test-case.bash 500 20000
+	./test-case.bash 1 10000000
+	./test-case.bash 10000000 1
 
 executeables: test_generator.out ext_transpose.out
 
@@ -16,4 +29,9 @@ ext_transpose.out:
 	g++ -o ext_transpose.out -DDEFAULT_BLOCK_SIZE=$(TRANSPOSE_BLOCK_SIZE) main.cpp
 
 clean:
-	rm -f *.out *.bin
+	rm -f *.out
+
+clean_tests:
+	rm -f *.bin
+
+clean_all: clean clean_tests

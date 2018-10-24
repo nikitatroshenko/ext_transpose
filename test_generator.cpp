@@ -6,6 +6,8 @@
 #define INPUT_FILE_NAME ("input.bin")
 #define OUTPUT_FILE_NAME ("output.expected.bin")
 
+#define DEFAULT_BLOCK_SIZE 512
+
 // usage: ./test_generator.out <rows_cnt> <cols_cnt>
 int main(int argc, char *argv[])
 {
@@ -19,20 +21,24 @@ int main(int argc, char *argv[])
 
     uint32_t m = atoi(argv[1]); // rows
     uint32_t n = atoi(argv[2]); // cols
-    assert(fwrite(&m, 1, 4, input_file) == 4);
-    assert(fwrite(&n, 1, 4, input_file) == 4);
+    assert(fwrite(&m, 4, 1, input_file) == 1);
+    assert(fwrite(&n, 4, 1, input_file) == 1);
+    uint32_t source_counter = 0;
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < n; j++) {
-            uint8_t element = UINT8_C(i * m + j);
+            uint8_t element = UINT8_C(source_counter++);
+            fseek(input_file, 8 + i * n + j, SEEK_SET);
             assert(fwrite(&element, 1, 1, input_file) == 1);
         }
     }
 
     assert(fwrite(&n, 1, 4, output_file) == 4);
     assert(fwrite(&m, 1, 4, output_file) == 4);
-    for (int j = 0; j < n; j++) {
-        for (int i = 0; i < m; i++) {
-            uint8_t element = UINT8_C(i * m + j);
+    uint32_t target_counter = 0;
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            uint8_t element = UINT8_C(target_counter++);
+            fseek(output_file, 8 + j * m + i, SEEK_SET);
             assert(fwrite(&element, 1, 1, output_file) == 1);
         }
     }

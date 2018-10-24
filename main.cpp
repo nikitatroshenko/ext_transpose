@@ -18,10 +18,6 @@ size_t min(size_t x, size_t y) {
 	return (x < y) ? x : y;
 }
 
-size_t min(size_t x, size_t y, size_t z) {
-	return min(min(x, y), z);
-}
-
 size_t max(size_t x, size_t y) {
 	return (x > y) ? x : y;
 }
@@ -37,6 +33,15 @@ void transpose_block(uint8_t *block, size_t B)
 			block[source] ^= block[target];
 			block[target] ^= block[source];
 			block[source] ^= block[target];
+		}
+	}
+}
+
+void transpose_block(uint8_t *block, uint8_t *transposed, size_t m, size_t n)
+{
+	for (size_t i = 0; i < m; i++) {
+		for (size_t j = 0; j < n; j++) {
+			transposed[j * m + i] = block[i * n + j];
 		}
 	}
 }
@@ -64,6 +69,44 @@ void transpose_fat(FILE *in, FILE *out, size_t m, size_t n)
 	delete[] block;
 }
 
+void transpose_tall(FILE *in, FILE *out, size_t m, size_t n) {
+	size_t B = DEFAULT_BLOCK_SIZE;
+	uint8_t *source = new uint8_t[B * n];
+	uint8_t *target = new uint8_t[n * B];
+
+	fseek(in, DATA_START_OFFSET, SEEK_SET);
+	for (size_t i = 0; i * B < m; i++) {
+		size_t src_rows = ((i + 1) * B <= m) ? B : (m % B);
+		fread(source, 1, n * src_rows, in);
+		transpose_block(source, target, src_rows, n);
+		for (size_t j = 0; j < n; j++) {
+			fseek(out, DATA_START_OFFSET + j * m + i * B, SEEK_SET);
+			fwrite(target + j * src_rows, 1, src_rows, out);
+		}
+	}
+	delete[] source;
+	delete[] target;
+}
+
+void transpose_long(FILE *in, FILE *out, size_t m, size_t n) {
+	size_t B = DEFAULT_BLOCK_SIZE;
+	uint8_t *source = new uint8_t[B * m];
+	uint8_t *target = new uint8_t[m * B];
+
+	fseek(out, DATA_START_OFFSET, SEEK_SET);
+	for (size_t i = 0; i * B < n; i++) {
+		size_t src_cols = ((i + 1) * B <= n) ? B : (n % B);
+		for (size_t j = 0; j < m; j++) {
+			fseek(in, DATA_START_OFFSET + j * n + i * B, SEEK_SET);
+			fread(source + j * src_cols, 1, src_cols, in);
+		}
+		transpose_block(source, target, m, src_cols);
+		fwrite(target, 1, m * src_cols, out);
+	}
+	delete[] source;
+	delete[] target;
+}
+
 void transpose_sneaky(FILE *in, FILE *out, size_t m, size_t n) {
 	size_t B = DEFAULT_BLOCK_SIZE;
 	size_t data_len = m * n;
@@ -77,6 +120,7 @@ void transpose_sneaky(FILE *in, FILE *out, size_t m, size_t n) {
 		fread(block, 1, block_size, in);
 		fwrite(block, 1, block_size, out);
 	}
+	delete[] block;
 }
 
 void transpose(FILE *in, FILE *out)
@@ -93,6 +137,10 @@ void transpose(FILE *in, FILE *out)
 
 	if ((dims[0] == 1) || (dims[1] == 1)) {
 		transpose_sneaky(in, out, dims[0], dims[1]);
+	} else if ((2 * dims[0]) < DEFAULT_BLOCK_SIZE) {
+		transpose_tall(in, out, dims[1], dims[0]);
+	} else if ((2 * dims[1]) < DEFAULT_BLOCK_SIZE) {
+		transpose_long(in, out, dims[1], dims[0]);
 	} else {
 		transpose_fat(in, out, dims[1], dims[0]);
 	}

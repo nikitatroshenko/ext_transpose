@@ -19,6 +19,9 @@ test: executeables
 	./test-case.bash 500 20000
 	./test-case.bash 1 10000000
 	./test-case.bash 10000000 1
+	./test-case.bash 2 5000000
+	./test-case.bash 5000000 2
+	./test-case.bash 100 100
 
 executeables: test_generator.out ext_transpose.out
 
